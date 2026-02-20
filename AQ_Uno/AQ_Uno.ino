@@ -1,6 +1,15 @@
-#include "Adafruit_PM25AQI.h"
+#include <Adafruit_PM25AQI.h>
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+#define SEA_LEVEL_PRESSURE_HPA (1013.25)
 
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
+Adafruit_BME280 bme;
+
+unsigned long delayTime;
 
 void setup() {
   // Wait for serial monitor to open
@@ -10,6 +19,7 @@ void setup() {
   }
 
   Serial.println("Adafruit PMSA003I Air Quality Sensor");
+  Serial.println("BME280 Barometric Sensor");
 
   // wait 3 seconds for sensor to boot up
   delay(3000);
@@ -20,8 +30,26 @@ void setup() {
       delay(10);
     }
   }
-
   Serial.println("PM2.5 found");
+
+  if (!bme.begin(0x76)) {
+    Serial.println("Could not find a valid BME280 sensor, check wiring, address, sensor ID!");
+    Serial.print("Sensor ID was: 0x");
+    Serial.println(bme.sensorID(), HEX);
+    Serial.print("        ID of 0xFF probably means a bad address, a BMP 180 or BMP 085\n");
+    Serial.print("   ID of 0x56-0x58 represents a BMP 280.\n");
+    Serial.print("        ID of 0x60 represents a BME 280.\n");
+    Serial.print("        ID of 0x61 represents a BME 680.\n");
+
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("BME280 found");
+
+  delayTime = 1000;
+
+  Serial.println();
 }
 
 void loop() {
@@ -34,6 +62,14 @@ void loop() {
     return;
   }
 
+  printPMValues(data);
+  printBMEValues();
+
+  // sensor reads every second
+  delay(delayTime);
+}
+
+void printPMValues(PM25_AQI_Data data) {
   Serial.println("AQI reading success");
 
   Serial.println(F("-----------------------------------------"));
@@ -80,7 +116,24 @@ void loop() {
 
   Serial.println(F("-----------------------------------------"));
   Serial.println();
+}
 
-  // sensor reads every second
-  delay(1000);
+void printBMEValues() {
+  Serial.print("Temperature = ");
+  Serial.print(bme.readTemperature());
+  Serial.println(" °C");
+
+  Serial.print("Pressure = ");
+  Serial.print(bme.readPressure() / 100.0F);
+  Serial.println(" hPa");
+
+  Serial.print("Approx. Altitude = ");
+  Serial.print(bme.readAltitude(SEA_LEVEL_PRESSURE_HPA));
+  Serial.println(" m");
+
+  Serial.print("Humidity = ");
+  Serial.print(bme.readHumidity());
+  Serial.println(" %");
+
+  Serial.println();
 }
