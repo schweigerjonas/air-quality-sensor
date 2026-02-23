@@ -1,13 +1,28 @@
+// PM sensor libraries
 #include <Adafruit_PM25AQI.h>
+
+// BME sensor libraries
 #include <Wire.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 
+// LCD sensor libraries
+#include <LiquidCrystal.h>
+
 #define SEA_LEVEL_PRESSURE_HPA (1013.25)
+
+// LCD pins
+int rs = 7;
+int en = 8;
+int d4 = 9;
+int d5 = 10;
+int d6 = 11;
+int d7 = 12;
 
 Adafruit_PM25AQI aqi = Adafruit_PM25AQI();
 Adafruit_BME280 bme;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 unsigned long delayTime;
 
@@ -47,7 +62,9 @@ void setup() {
   }
   Serial.println("BME280 found");
 
-  delayTime = 1000;
+  lcd.begin(16, 2);
+
+  delayTime = 2500;
 
   Serial.println();
 }
@@ -64,9 +81,35 @@ void loop() {
 
   printPMValues(data);
   printBMEValues();
+  printReadingsToLCD(bme.readTemperature(), bme.readHumidity(), data.aqi_pm25_us, data.aqi_pm100_us);
 
   // sensor reads every second
   delay(delayTime);
+
+  lcd.clear();
+}
+
+void printReadingsToLCD(float temperature, float humidity, int aqi_pm25, int aqi_pm100) {
+  lcd.setCursor(0, 0);
+  String tempString = "Temp: " + String(temperature);
+  lcd.print(tempString);
+  lcd.print((char)223);  // 0xDF -> code for ° (degree) symbol
+  lcd.print("C");
+
+  lcd.setCursor(0, 1);
+  String humString = "Hum:  " + String(humidity) + "%";
+  lcd.print(humString);
+
+  delay(2500);
+  lcd.clear();
+
+  lcd.setCursor(0, 0);
+  String pm25String = "AQI_25:  " + String(aqi_pm25);
+  lcd.print(pm25String);
+
+  lcd.setCursor(0, 1);
+  String pm100String = "AQI_100: " + String(aqi_pm100);
+  lcd.print(pm100String);
 }
 
 void printPMValues(PM25_AQI_Data data) {
